@@ -1,0 +1,29 @@
+name: Windows-VNC-Setup
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Download Ngrok
+        run: |
+          Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+          Expand-Archive ngrok.zip
+      - name: Authenticate Ngrok
+        run: .\ngrok\ngrok.exe authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+      - name: Create User and Set Password
+        run: |
+          # Replace 'MyUser' and 'Pass1234' with your desired ID and Password
+          net user "MyUser" "Pass1234" /add
+          net localgroup administrators "MyUser" /add
+          echo "User Created Successfully!"
+      - name: Enable Remote Desktop
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+      - name: Start Connection
+        run: Start-Process .\ngrok\ngrok.exe -ArgumentList "tcp 3389"
+      - name: Keep Alive
+        run: |
+          Write-Host "VNC/RDP Address is ready. Check your Ngrok Dashboard."
+          Start-Sleep -Seconds 21600
